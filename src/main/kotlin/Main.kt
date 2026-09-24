@@ -10,13 +10,11 @@ import notifications.impl.DiscordNotificationProvider
 import store.LessonNotificationStore
 import untis.LessonParser
 import untis.closingUntisSession
-import untis.todaysTimetable
+import untis.timetable
 import utils.d
 import utils.e
 import utils.i
-import utils.ifTrue
 import kotlin.properties.Delegates
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
 val ktor by lazy { HttpClient(CIO) }
@@ -51,24 +49,25 @@ suspend fun main() = coroutineScope {
     val lessonParser = LessonParser(config.timetable)
 
     launch {
-        while(isActive) {
-            d("Clearing Lesson store")
-            LessonNotificationStore.clear()
-            delay(7.days) // I hope this handles errors well enough to ever achieve 7 days uptime
-        }
-    }
-
-    launch {
         while (isActive) {
+            val today = config.reminder.today()
+            LessonNotificationStore.prune(before = today)
             closingUntisSession(config.untis) { session ->
-                val timeTable = session.todaysTimetable().apply { sortByStartTime() }
+                val timeTable = session.timetable(today, config.reminder.lastLessonDate(today))
+                    .sortedWith(compareBy({ it.date }, { it.startTime }))
                 for (lesson in timeTable) {
-                    (lessonParser.parseChange(lesson) ?: continue)
-                        .filterNot { LessonNotificationStore.has(it.lessonTime).ifTrue { d("non-normal lesson (${it.lessonTime}, ${it.lessonName}) has already been noticed") } }
-                        .forEach {
-                            LessonNotificationStore.add(it.lessonTime)
-                            notificationProvider.sendChanges(it)
+                    for (change in lessonParser.parseChange(lesson) ?: continue) {
+                        val dueReminders = config.reminder.dates
+                            .filter { !it.firstDay(change.date).isAfter(today) }
+                            .filterNot { LessonNotificationStore.has(change, it) }
+                        if (dueReminders.isEmpty()) {
+                            d("change (${change.date}, ${change.lessonTime}, ${change.lessonName}) has already been noticed or is not due yet")
+                            continue
                         }
+                        // several reminders may be due at once (e.g. change made on the same day), only notify once
+                        LessonNotificationStore.add(change, dueReminders)
+                        notificationProvider.sendChanges(today, change)
+                    }
                 }
             }
             delay(config.untis.refreshDelaySeconds.seconds)

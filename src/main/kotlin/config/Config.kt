@@ -8,7 +8,7 @@ import kotlin.io.path.*
 @Serializable
 data class Config(
     val debug: Boolean = false,
-    val untis: Untis,
+    val untis: UntisConfig,
     val timetable: TimeTableConfig = mapOf(
         LocalTime.parse("07:50:00") to 1,
         // 5 min break
@@ -27,6 +27,10 @@ data class Config(
         LocalTime.parse("15:35:00") to 9,
         LocalTime.parse("16:20:00") to 10,
     ),
+    val reminder: ReminderConfig = ReminderConfig(
+        newDateTime = LocalTime.parse("07:30:00"),
+        dates = listOf(ReminderDate.SAME_DAY, ReminderDate.FULL_WEEK)
+    ),
     val notifications: NotificationConfig
 )
 
@@ -43,7 +47,7 @@ fun loadConfig(): Config? =
             println("config.json does not exist, creating default config")
             val defaultConfig = Config(
                 debug = false,
-                untis = Untis(
+                untis = UntisConfig(
                     server = "https://example.com",
                     school = "school",
                     username = "username",

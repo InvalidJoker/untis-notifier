@@ -7,7 +7,6 @@ import org.bytedream.untis4j.UntisUtils.LessonCode
 import org.bytedream.untis4j.responseObjects.Timetable.Lesson
 import utils.ifFalse
 import utils.w
-import java.time.LocalTime
 
 class LessonParser(val config: TimeTableConfig) {
 
@@ -22,6 +21,7 @@ class LessonParser(val config: TimeTableConfig) {
         if (lesson.code == LessonCode.CANCELLED) return listOf(
             LessonChange(
                 LessonChangeType.CANCELLED,
+                lesson.date,
                 time,
                 name,
                 null
@@ -31,12 +31,12 @@ class LessonParser(val config: TimeTableConfig) {
         val changes = mutableListOf<LessonChange>()
 
         (lesson.originalTeachers.isEmpty()).ifFalse {
-            changes += LessonChange(LessonChangeType.TEACHER, time, name, lesson.teachers[0].longName)
+            changes += LessonChange(LessonChangeType.TEACHER, lesson.date, time, name, lesson.teachers.firstOrNull()?.longName ?: "---")
             d("found changed teacher ($time, $name)")
         }
 
         (lesson.originalRooms.isEmpty()).ifFalse {
-            changes += LessonChange(LessonChangeType.ROOM, time, name, lesson.rooms[0].name)
+            changes += LessonChange(LessonChangeType.ROOM, lesson.date, time, name, lesson.rooms.firstOrNull()?.name ?: "---")
             d("found changed room ($time, $name)")
         }
 

@@ -9,6 +9,7 @@ repositories {
     mavenCentral()
     maven("https://repo.koder.wtf/maven/releases")
     maven("https://jitpack.io")
+    maven("https://git.bossing.vip/api/packages/max/maven")
 }
 
 dependencies {
@@ -19,7 +20,7 @@ dependencies {
     implementation("io.ktor:ktor-client-core:3.6.0")
     implementation("io.ktor:ktor-client-cio:3.6.0")
 
-    implementation("com.toddway.shelf:Shelf:2.0.7")
+    implementation("ng.bossi:Store:1.0.1")
     implementation("com.github.untisapi:untis4j:1.3.6")
 }
 
