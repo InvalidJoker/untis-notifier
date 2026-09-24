@@ -53,12 +53,12 @@ suspend fun main() = coroutineScope {
             val today = config.reminder.today()
             LessonNotificationStore.prune(before = today)
             closingUntisSession(config.untis) { session ->
-                val timeTable = session.timetable(today, today.plusDays(config.reminder.lookAheadDays))
+                val timeTable = session.timetable(today, config.reminder.lastLessonDate(today))
                     .sortedWith(compareBy({ it.date }, { it.startTime }))
                 for (lesson in timeTable) {
                     for (change in lessonParser.parseChange(lesson) ?: continue) {
                         val dueReminders = config.reminder.dates
-                            .filter { !change.date.minusDays(it.daysBefore).isAfter(today) }
+                            .filter { !it.firstDay(change.date).isAfter(today) }
                             .filterNot { LessonNotificationStore.has(change, it) }
                         if (dueReminders.isEmpty()) {
                             d("change (${change.date}, ${change.lessonTime}, ${change.lessonName}) has already been noticed or is not due yet")

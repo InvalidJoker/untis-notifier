@@ -28,7 +28,8 @@ data class Config(
         LocalTime.parse("16:20:00") to 10,
     ),
     val reminder: ReminderConfig = ReminderConfig(
-        newDateTime = LocalTime.parse("07:30:00")
+        newDateTime = LocalTime.parse("07:30:00"),
+        dates = listOf(ReminderDate.SAME_DAY, ReminderDate.FULL_WEEK)
     ),
     val notifications: NotificationConfig
 )
