@@ -10,7 +10,10 @@ import java.time.LocalDate
 import kotlin.io.path.Path
 
 @Serializable
-data class NotifiedChange(val reminders: Set<ReminderDate> = emptySet())
+data class NotifiedChange(
+    val change: String? = null,
+    val reminders: Set<ReminderDate> = emptySet()
+)
 
 object LessonNotificationStore {
 
@@ -26,13 +29,16 @@ object LessonNotificationStore {
 
     private fun key(change: LessonChange) = "${change.date}.${change.lessonTime}.${change.type}"
 
+    private fun current(change: LessonChange): NotifiedChange? =
+        store[key(change)]?.takeIf { it.change == change.change }
+
     fun add(change: LessonChange, reminders: Collection<ReminderDate>) {
-        val notified = store[key(change)] ?: NotifiedChange()
+        val notified = current(change) ?: NotifiedChange(change.change)
         store[key(change)] = notified.copy(reminders = notified.reminders + reminders)
     }
 
     fun has(change: LessonChange, reminder: ReminderDate): Boolean =
-        store[key(change)]?.reminders?.contains(reminder) == true
+        current(change)?.reminders?.contains(reminder) == true
 
     // removes all entries of lessons before the given date
     fun prune(before: LocalDate) = driver.all()
