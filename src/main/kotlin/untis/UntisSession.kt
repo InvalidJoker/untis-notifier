@@ -1,13 +1,13 @@
 package untis
 
-import config.Untis
+import config.UntisConfig
 import kotlinx.io.IOException
 import org.bytedream.untis4j.LoginException
 import org.bytedream.untis4j.Session
 import utils.w
 import java.time.LocalDate
 
-inline fun closingUntisSession(config: Untis, block: (session: Session) -> Unit) =
+inline fun closingUntisSession(config: UntisConfig, block: (session: Session) -> Unit) =
     try {
         Session.login(config.username, config.password, config.server, config.school ?: "").apply(block).logout()
     } catch(e: LoginException) {
