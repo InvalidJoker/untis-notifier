@@ -21,6 +21,7 @@ class LessonParser(val config: TimeTableConfig) {
         if (lesson.code == LessonCode.CANCELLED) return listOf(
             LessonChange(
                 LessonChangeType.CANCELLED,
+                lesson.date,
                 time,
                 name,
                 null
@@ -30,12 +31,12 @@ class LessonParser(val config: TimeTableConfig) {
         val changes = mutableListOf<LessonChange>()
 
         (lesson.originalTeachers.isEmpty()).ifFalse {
-            changes += LessonChange(LessonChangeType.TEACHER, time, name, lesson.teachers.firstOrNull()?.longName ?: "---")
+            changes += LessonChange(LessonChangeType.TEACHER, lesson.date, time, name, lesson.teachers.firstOrNull()?.longName ?: "---")
             d("found changed teacher ($time, $name)")
         }
 
         (lesson.originalRooms.isEmpty()).ifFalse {
-            changes += LessonChange(LessonChangeType.ROOM, time, name, lesson.rooms.firstOrNull()?.name ?: "---")
+            changes += LessonChange(LessonChangeType.ROOM, lesson.date, time, name, lesson.rooms.firstOrNull()?.name ?: "---")
             d("found changed room ($time, $name)")
         }
 
