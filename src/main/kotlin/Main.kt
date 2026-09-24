@@ -65,7 +65,7 @@ suspend fun main() = coroutineScope {
                             continue
                         }
                         // several reminders may be due at once (e.g. change made on the same day), only notify once
-                        dueReminders.forEach { LessonNotificationStore.add(change, it) }
+                        LessonNotificationStore.add(change, dueReminders)
                         notificationProvider.sendChanges(today, change)
                     }
                 }
