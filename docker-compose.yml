@@ -1,0 +1,9 @@
+services:
+  untis-notifier:
+    image: ghcr.io/invalidjoker/untis-notifier:latest
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      - ./config.json:/config.json
+      - ./cache:/cache
