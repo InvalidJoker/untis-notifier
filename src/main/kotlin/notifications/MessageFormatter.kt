@@ -34,6 +34,8 @@ class MessageFormatter(private val config: MessageConfig) {
         LessonChangeType.CANCELLED -> config.cancelled
         LessonChangeType.ROOM -> config.room
         LessonChangeType.TEACHER -> config.teacher
+        LessonChangeType.SUBJECT -> config.subject
+        LessonChangeType.ADDITIONAL -> config.additional
     }.fill(
         mapOf(
             "lesson" to change.lessonTimeLabel,
