@@ -1,13 +1,16 @@
 package config
 
 import json
-import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalTime
-import kotlin.io.path.*
+import kotlinx.serialization.Serializable
+import mainLogger
+import kotlin.io.path.Path
+import kotlin.io.path.exists
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 @Serializable
 data class Config(
-    val debug: Boolean = false,
     val untis: UntisConfig,
     val timetable: TimeTableConfig = mapOf(
         LocalTime.parse("07:50:00") to 1,
@@ -32,6 +35,7 @@ data class Config(
         newDateTime = LocalTime.parse("07:30:00"),
         dates = listOf(ReminderDate.SAME_DAY, ReminderDate.FULL_WEEK)
     ),
+    val messages: MessageConfig = MessageConfig(),
     val notifications: NotificationConfig
 )
 
@@ -45,9 +49,8 @@ fun loadConfig(): Config? =
                 null
             }
         } else {
-            println("config.json does not exist, creating default config")
+            mainLogger.info("config.json does not exist, creating default config")
             val defaultConfig = Config(
-                debug = false,
                 untis = UntisConfig(
                     server = "https://example.com",
                     school = "school",

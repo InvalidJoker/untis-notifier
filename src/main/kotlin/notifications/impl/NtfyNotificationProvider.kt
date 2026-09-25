@@ -6,7 +6,6 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import ktor
 import notifications.AbstractNotificationProvider
-import utils.i
 
 class NtfyNotificationProvider(
     private val config: NtfyNotificationConfig
@@ -34,7 +33,7 @@ class NtfyNotificationProvider(
                 basicAuth(config.username, config.password)
             }
         }.let { response ->
-            i(
+            logger.info(
                 "(NtfyRequest): status=${response.status}, " +
                         "message=${response.bodyAsText()}"
             )

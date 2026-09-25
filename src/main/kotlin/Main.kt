@@ -1,26 +1,26 @@
-import config.*
+import config.DiscordNotificationConfig
+import config.NtfyNotificationConfig
+import config.PushoverNotificationConfig
+import config.loadConfig
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
-import kotlinx.coroutines.*
-import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import notifications.MessageFormatter
+import notifications.impl.DiscordNotificationProvider
 import notifications.impl.NtfyNotificationProvider
 import notifications.impl.PushoverNotificationProvider
-import notifications.impl.DiscordNotificationProvider
 import store.LessonNotificationStore
 import untis.LessonParser
 import untis.closingUntisSession
 import untis.timetable
-import utils.d
-import utils.e
-import utils.i
-import kotlin.properties.Delegates
+import utils.getLogger
 import kotlin.time.Duration.Companion.seconds
 
 val ktor by lazy { HttpClient(CIO) }
-
-var debug by Delegates.notNull<Boolean>()
-    private set
 
 val json = Json {
     classDiscriminator = "type"
@@ -28,25 +28,31 @@ val json = Json {
     isLenient = true
 }
 
+val mainLogger = getLogger("Main")
+
 suspend fun main() = coroutineScope {
-    val config = loadConfig() ?: e("cannot read config")
-    debug = config.debug
+    val config = loadConfig() ?: error("cannot read config")
+
     val notificationProvider = when (config.notifications) {
         is PushoverNotificationConfig -> {
-            i("initializing Pushover notification provider")
+            mainLogger.info("initializing Pushover notification provider")
             PushoverNotificationProvider(config.notifications)
         }
+
         is NtfyNotificationConfig -> {
-            i("initializing Ntfy notification provider")
+            mainLogger.info("initializing Ntfy notification provider")
             NtfyNotificationProvider(config.notifications)
         }
+
         is DiscordNotificationConfig -> {
-            i("initializing Discord notification provider")
+            mainLogger.info("initializing Discord notification provider")
             DiscordNotificationProvider(config.notifications)
         }
     }
 
     val lessonParser = LessonParser(config.timetable, config.doubleLessonMaxBreakMinutes)
+
+    val messageFormatter = MessageFormatter(config.messages)
 
     launch {
         while (isActive) {
@@ -59,11 +65,16 @@ suspend fun main() = coroutineScope {
                         .filter { !it.firstDay(change.date).isAfter(today) }
                         .filterNot { LessonNotificationStore.has(change, it) }
                     if (dueReminders.isEmpty()) {
-                        d("change (${change.date}, ${change.lessonTimeLabel}, ${change.lessonName}) has already been noticed or is not due yet")
+                        mainLogger.debug(
+                            "change ({}, {}, {}) has already been noticed or is not due yet",
+                            change.date,
+                            change.lessonTimeLabel,
+                            change.lessonName
+                        )
                         continue
                     }
                     LessonNotificationStore.add(change, dueReminders)
-                    notificationProvider.sendChanges(today, change)
+                    notificationProvider.sendMessage(messageFormatter.format(change, today))
                 }
             }
             delay(config.untis.refreshDelaySeconds.seconds)

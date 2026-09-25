@@ -42,7 +42,13 @@ object LessonNotificationStore {
 
     // removes all entries of lessons before the given date
     fun prune(before: LocalDate) = driver.all()
-        .filter { key -> runCatching { LocalDate.parse(key.removePrefix(NAMESPACE).substringBefore('.')) < before }.getOrDefault(false) }
+        .filter { key ->
+            runCatching {
+                LocalDate.parse(
+                    key.removePrefix(NAMESPACE).substringBefore('.')
+                ) < before
+            }.getOrDefault(false)
+        }
         .forEach { driver.remove(it) }
 
     fun clear() = store.clear()

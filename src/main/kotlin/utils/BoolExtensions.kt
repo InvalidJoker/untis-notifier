@@ -6,6 +6,7 @@ inline fun Boolean.ifTrue(block: () -> Unit): Boolean {
     }
     return this
 }
+
 inline fun Boolean.ifFalse(block: () -> Unit): Boolean {
     if (!this) {
         block.invoke()

@@ -2,14 +2,15 @@ package untis
 
 import config.TimeTableConfig
 import kotlinx.datetime.toKotlinLocalTime
-import utils.d
 import org.bytedream.untis4j.UntisUtils.LessonCode
 import org.bytedream.untis4j.responseObjects.Timetable.Lesson
+import utils.getLogger
 import utils.ifFalse
-import utils.w
 import java.time.Duration
 
 class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes: Int) {
+    val logger = getLogger()
+
     fun parseChanges(lessons: Iterable<Lesson>): List<LessonChange> = lessons
         .flatMap { parseChange(it).orEmpty() }
         .sortedWith(compareBy({ it.date }, { it.lessonTimes.first }))
@@ -18,26 +19,36 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
             if (index == -1) {
                 merged += change
             } else {
-                merged[index] = merged[index].let { it.copy(lessonTimes = it.lessonTimes.first..change.lessonTimes.last, endTime = change.endTime) }
-                d("merged double lesson (${change.date}, ${merged[index].lessonTimeLabel}, ${change.lessonName})")
+                merged[index] = merged[index].let {
+                    it.copy(
+                        lessonTimes = it.lessonTimes.first..change.lessonTimes.last,
+                        endTime = change.endTime
+                    )
+                }
+                logger.debug(
+                    "merged double lesson ({}, {}, {})",
+                    change.date,
+                    merged[index].lessonTimeLabel,
+                    change.lessonName
+                )
             }
             merged
         }
 
     private fun LessonChange.canMergeWith(next: LessonChange) =
         date == next.date &&
-            type == next.type &&
-            lessonName == next.lessonName &&
-            change == next.change &&
-            lessonTimes.last + 1 == next.lessonTimes.first &&
-            !Duration.between(endTime, next.startTime).isNegative &&
-            Duration.between(endTime, next.startTime).toMinutes() <= doubleLessonMaxBreakMinutes
+                type == next.type &&
+                lessonName == next.lessonName &&
+                change == next.change &&
+                lessonTimes.last + 1 == next.lessonTimes.first &&
+                !Duration.between(endTime, next.startTime).isNegative &&
+                Duration.between(endTime, next.startTime).toMinutes() <= doubleLessonMaxBreakMinutes
 
     fun parseChange(lesson: Lesson): List<LessonChange>? {
-        d("parsing lesson (${lesson.subjects[0].longName}) at (${lesson.startTime})")
+        logger.debug("parsing lesson ({}) at ({})", lesson.subjects[0].longName, lesson.startTime)
         val name = lesson.subjects[0].longName
         val time = config[lesson.startTime.toKotlinLocalTime()] ?: run {
-            w("invalid lesson time (${lesson.startTime})")
+            logger.warn("invalid lesson time (${lesson.startTime})")
             return null
         }
 
@@ -46,18 +57,18 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
 
         if (lesson.code == LessonCode.CANCELLED) return listOf(
             change(LessonChangeType.CANCELLED, null)
-        ).also { d("found cancelled lesson ($time, $name)") }
+        ).also { logger.debug("found cancelled lesson ($time, $name)") }
 
         val changes = mutableListOf<LessonChange>()
 
         (lesson.originalTeachers.isEmpty()).ifFalse {
             changes += change(LessonChangeType.TEACHER, lesson.teachers.firstOrNull()?.longName ?: "---")
-            d("found changed teacher ($time, $name)")
+            logger.debug("found changed teacher ($time, $name)")
         }
 
         (lesson.originalRooms.isEmpty()).ifFalse {
             changes += change(LessonChangeType.ROOM, lesson.rooms.firstOrNull()?.name ?: "---")
-            d("found changed room ($time, $name)")
+            logger.debug("found changed room ($time, $name)")
         }
 
         return changes.takeIf { it.isNotEmpty() }

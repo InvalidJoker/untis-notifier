@@ -22,6 +22,7 @@ dependencies {
 
     implementation("ng.bossi:Store:1.0.1")
     implementation("com.github.untisapi:untis4j:1.3.6")
+    implementation("ch.qos.logback:logback-classic:1.6.3")
 }
 
 
