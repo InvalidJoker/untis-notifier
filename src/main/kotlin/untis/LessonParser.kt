@@ -41,9 +41,9 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
                 type == next.type &&
                 lessonName == next.lessonName &&
                 change == next.change &&
-                lessonTimes.last + 1 == next.lessonTimes.first &&
-                !Duration.between(endTime, next.startTime).isNegative &&
-                Duration.between(endTime, next.startTime).toMinutes() <= doubleLessonMaxBreakMinutes
+                lessonTimes.last + 1 == next.lessonTimes.first && // => next lesson is the next lesson in the timetable
+                !Duration.between(endTime, next.startTime).isNegative && // => next lesson starts after this lesson ends
+                Duration.between(endTime, next.startTime).toMinutes() <= doubleLessonMaxBreakMinutes // => next lesson starts within the allowed break time
 
     private fun parseSlot(lessons: List<Lesson>): List<LessonChange> {
         val cancelled = lessons.filter { it.code == LessonCode.CANCELLED }.toMutableList()
