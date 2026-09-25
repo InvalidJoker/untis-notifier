@@ -21,7 +21,8 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:3.6.0")
 
     implementation("ng.bossi:Store:1.0.1")
-    implementation("com.github.untisapi:untis4j:1.3.6")
+    implementation("com.github.0xIO32:untis4j:get_teachers_workarround-SNAPSHOT")
+
     implementation("ch.qos.logback:logback-classic:1.6.3")
 }
 
