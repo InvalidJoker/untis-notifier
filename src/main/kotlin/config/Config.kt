@@ -4,10 +4,10 @@ import json
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalTime
 import kotlin.io.path.*
+import mainLogger
 
 @Serializable
 data class Config(
-    val debug: Boolean = false,
     val untis: UntisConfig,
     val timetable: TimeTableConfig = mapOf(
         LocalTime.parse("07:50:00") to 1,
@@ -46,9 +46,8 @@ fun loadConfig(): Config? =
                 null
             }
         } else {
-            println("config.json does not exist, creating default config")
+            mainLogger.info("config.json does not exist, creating default config")
             val defaultConfig = Config(
-                debug = false,
                 untis = UntisConfig(
                     server = "https://example.com",
                     school = "school",

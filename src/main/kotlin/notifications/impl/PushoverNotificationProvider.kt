@@ -5,7 +5,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import ktor
 import notifications.AbstractNotificationProvider
-import utils.i
 
 class PushoverNotificationProvider(private val config: PushoverNotificationConfig) : AbstractNotificationProvider<PushoverNotificationConfig>(config) {
     override suspend fun sendMessage(message: String) {
@@ -14,7 +13,7 @@ class PushoverNotificationProvider(private val config: PushoverNotificationConfi
             parameter("user", config.groupKey)
             parameter("message", message)
         }.let { response ->
-            i("(PushoverRequest) status=${response.status}, message=${response.bodyAsText()}")
+            logger.info("(PushoverRequest) status=${response.status}, message=${response.bodyAsText()}")
         }
     }
 }

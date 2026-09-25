@@ -1,20 +1,14 @@
 package utils
 
-import debug
-import java.time.Instant
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import kotlin.system.exitProcess
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import kotlin.reflect.KClass
 
-private fun log(msg: Any, label: String) =
-    DateTimeFormatter
-        .ISO_DATE_TIME
-        .withZone(ZoneOffset.systemDefault())
-        .format(Instant.now()).let {
-            println("[$it] $label: $msg")
-        }
+fun <T : Any> getLogger(clazz: KClass<T>): Logger =
+    LoggerFactory.getLogger(clazz.java)
 
-fun i(msg: Any) = log(msg, "i")
-fun d(msg: Any) = debug.ifTrue { log(msg, "d") }
-fun w(msg: Any) = log(msg, "w")
-fun e(msg: Any): Nothing = log(msg, "e").let { exitProcess(-1) }
+fun <T : Any> T.getLogger(): Logger =
+    getLogger(this::class)
+
+fun getLogger(name: String): Logger =
+    LoggerFactory.getLogger(name)
