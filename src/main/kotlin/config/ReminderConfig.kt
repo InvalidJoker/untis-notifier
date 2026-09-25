@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 enum class ReminderDate {
     SAME_DAY,
@@ -40,6 +41,7 @@ data class ReminderConfig(
 ) {
     fun lastLessonDate(today: LocalDate): LocalDate = dates.maxOfOrNull { it.lastLessonDate(today) } ?: today
 
-    fun today(): LocalDate = LocalDate.now()
+    fun today(): LocalDate = LocalDateTime.now()
         .minus(Duration.ofSeconds(newDateTime.toJavaLocalTime().toSecondOfDay().toLong()))
+        .toLocalDate()
 }
