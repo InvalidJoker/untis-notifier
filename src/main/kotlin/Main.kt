@@ -4,6 +4,7 @@ import io.ktor.client.engine.cio.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import notifications.MessageFormatter
 import notifications.impl.NtfyNotificationProvider
 import notifications.impl.PushoverNotificationProvider
 import notifications.impl.DiscordNotificationProvider
@@ -48,6 +49,8 @@ suspend fun main() = coroutineScope {
 
     val lessonParser = LessonParser(config.timetable, config.doubleLessonMaxBreakMinutes)
 
+    val messageFormatter = MessageFormatter(config.messages)
+
     launch {
         while (isActive) {
             val today = config.reminder.today()
@@ -63,7 +66,7 @@ suspend fun main() = coroutineScope {
                         continue
                     }
                     LessonNotificationStore.add(change, dueReminders)
-                    notificationProvider.sendChanges(today, change)
+                    notificationProvider.sendMessage(messageFormatter.format(change, today))
                 }
             }
             delay(config.untis.refreshDelaySeconds.seconds)

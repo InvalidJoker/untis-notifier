@@ -32,6 +32,7 @@ data class Config(
         newDateTime = LocalTime.parse("07:30:00"),
         dates = listOf(ReminderDate.SAME_DAY, ReminderDate.FULL_WEEK)
     ),
+    val messages: MessageConfig = MessageConfig(),
     val notifications: NotificationConfig
 )
 
