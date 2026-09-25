@@ -27,6 +27,7 @@ data class Config(
         LocalTime.parse("15:35:00") to 9,
         LocalTime.parse("16:20:00") to 10,
     ),
+    val doubleLessonMaxBreakMinutes: Int = 0,
     val reminder: ReminderConfig = ReminderConfig(
         newDateTime = LocalTime.parse("07:30:00"),
         dates = listOf(ReminderDate.SAME_DAY, ReminderDate.FULL_WEEK)

@@ -46,7 +46,7 @@ suspend fun main() = coroutineScope {
         }
     }
 
-    val lessonParser = LessonParser(config.timetable)
+    val lessonParser = LessonParser(config.timetable, config.doubleLessonMaxBreakMinutes)
 
     launch {
         while (isActive) {
@@ -54,20 +54,16 @@ suspend fun main() = coroutineScope {
             LessonNotificationStore.prune(before = today)
             closingUntisSession(config.untis) { session ->
                 val timeTable = session.timetable(today, config.reminder.lastLessonDate(today))
-                    .sortedWith(compareBy({ it.date }, { it.startTime }))
-                for (lesson in timeTable) {
-                    for (change in lessonParser.parseChange(lesson) ?: continue) {
-                        val dueReminders = config.reminder.dates
-                            .filter { !it.firstDay(change.date).isAfter(today) }
-                            .filterNot { LessonNotificationStore.has(change, it) }
-                        if (dueReminders.isEmpty()) {
-                            d("change (${change.date}, ${change.lessonTime}, ${change.lessonName}) has already been noticed or is not due yet")
-                            continue
-                        }
-                        // several reminders may be due at once (e.g. change made on the same day), only notify once
-                        LessonNotificationStore.add(change, dueReminders)
-                        notificationProvider.sendChanges(today, change)
+                for (change in lessonParser.parseChanges(timeTable)) {
+                    val dueReminders = config.reminder.dates
+                        .filter { !it.firstDay(change.date).isAfter(today) }
+                        .filterNot { LessonNotificationStore.has(change, it) }
+                    if (dueReminders.isEmpty()) {
+                        d("change (${change.date}, ${change.lessonTimeLabel}, ${change.lessonName}) has already been noticed or is not due yet")
+                        continue
                     }
+                    LessonNotificationStore.add(change, dueReminders)
+                    notificationProvider.sendChanges(today, change)
                 }
             }
             delay(config.untis.refreshDelaySeconds.seconds)

@@ -7,8 +7,31 @@ import org.bytedream.untis4j.UntisUtils.LessonCode
 import org.bytedream.untis4j.responseObjects.Timetable.Lesson
 import utils.ifFalse
 import utils.w
+import java.time.Duration
 
-class LessonParser(val config: TimeTableConfig) {
+class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes: Int) {
+    fun parseChanges(lessons: Iterable<Lesson>): List<LessonChange> = lessons
+        .flatMap { parseChange(it).orEmpty() }
+        .sortedWith(compareBy({ it.date }, { it.lessonTimes.first }))
+        .fold(mutableListOf()) { merged, change ->
+            val index = merged.indexOfLast { it.canMergeWith(change) }
+            if (index == -1) {
+                merged += change
+            } else {
+                merged[index] = merged[index].let { it.copy(lessonTimes = it.lessonTimes.first..change.lessonTimes.last, endTime = change.endTime) }
+                d("merged double lesson (${change.date}, ${merged[index].lessonTimeLabel}, ${change.lessonName})")
+            }
+            merged
+        }
+
+    private fun LessonChange.canMergeWith(next: LessonChange) =
+        date == next.date &&
+            type == next.type &&
+            lessonName == next.lessonName &&
+            change == next.change &&
+            lessonTimes.last + 1 == next.lessonTimes.first &&
+            !Duration.between(endTime, next.startTime).isNegative &&
+            Duration.between(endTime, next.startTime).toMinutes() <= doubleLessonMaxBreakMinutes
 
     fun parseChange(lesson: Lesson): List<LessonChange>? {
         d("parsing lesson (${lesson.subjects[0].longName}) at (${lesson.startTime})")
@@ -18,25 +41,22 @@ class LessonParser(val config: TimeTableConfig) {
             return null
         }
 
+        fun change(type: LessonChangeType, change: String?) =
+            LessonChange(type, lesson.date, time..time, name, change, lesson.startTime, lesson.endTime)
+
         if (lesson.code == LessonCode.CANCELLED) return listOf(
-            LessonChange(
-                LessonChangeType.CANCELLED,
-                lesson.date,
-                time,
-                name,
-                null
-            )
+            change(LessonChangeType.CANCELLED, null)
         ).also { d("found cancelled lesson ($time, $name)") }
 
         val changes = mutableListOf<LessonChange>()
 
         (lesson.originalTeachers.isEmpty()).ifFalse {
-            changes += LessonChange(LessonChangeType.TEACHER, lesson.date, time, name, lesson.teachers.firstOrNull()?.longName ?: "---")
+            changes += change(LessonChangeType.TEACHER, lesson.teachers.firstOrNull()?.longName ?: "---")
             d("found changed teacher ($time, $name)")
         }
 
         (lesson.originalRooms.isEmpty()).ifFalse {
-            changes += LessonChange(LessonChangeType.ROOM, lesson.date, time, name, lesson.rooms.firstOrNull()?.name ?: "---")
+            changes += change(LessonChangeType.ROOM, lesson.rooms.firstOrNull()?.name ?: "---")
             d("found changed room ($time, $name)")
         }
 

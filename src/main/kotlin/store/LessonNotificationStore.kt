@@ -27,7 +27,7 @@ object LessonNotificationStore {
         format = Json
     )
 
-    private fun key(change: LessonChange) = "${change.date}.${change.lessonTime}.${change.type}"
+    private fun key(change: LessonChange) = "${change.date}.${change.lessonTimeLabel}.${change.type}"
 
     private fun current(change: LessonChange): NotifiedChange? =
         store[key(change)]?.takeIf { it.change == change.change }

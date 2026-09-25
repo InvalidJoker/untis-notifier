@@ -21,13 +21,13 @@ abstract class AbstractNotificationProvider<T: NotificationConfig>(private val c
         val day = dayLabel(it.date, today)
         when (it.type) {
             LessonChangeType.CANCELLED -> {
-                sendMessage("Lesson ${it.lessonTime} ${it.lessonName} $day has been cancelled")
+                sendMessage("Lesson ${it.lessonTimeLabel} ${it.lessonName} $day has been cancelled")
             }
             LessonChangeType.ROOM -> {
-                sendMessage("Lesson ${it.lessonTime} (${it.lessonName}) $day has been assigned a new room: ${it.change}")
+                sendMessage("Lesson ${it.lessonTimeLabel} (${it.lessonName}) $day has been assigned a new room: ${it.change}")
             }
             LessonChangeType.TEACHER -> {
-                sendMessage( "Lesson ${it.lessonTime} (${it.lessonName}) $day has been assigned a new teacher: ${it.change}")
+                sendMessage( "Lesson ${it.lessonTimeLabel} (${it.lessonName}) $day has been assigned a new teacher: ${it.change}")
             }
         }
     }
