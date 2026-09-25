@@ -5,7 +5,6 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import json
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import ktor
 import notifications.AbstractNotificationProvider
 

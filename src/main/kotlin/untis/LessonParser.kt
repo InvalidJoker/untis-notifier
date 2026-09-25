@@ -19,7 +19,12 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
             if (index == -1) {
                 merged += change
             } else {
-                merged[index] = merged[index].let { it.copy(lessonTimes = it.lessonTimes.first..change.lessonTimes.last, endTime = change.endTime) }
+                merged[index] = merged[index].let {
+                    it.copy(
+                        lessonTimes = it.lessonTimes.first..change.lessonTimes.last,
+                        endTime = change.endTime
+                    )
+                }
                 logger.debug(
                     "merged double lesson ({}, {}, {})",
                     change.date,
@@ -32,12 +37,12 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
 
     private fun LessonChange.canMergeWith(next: LessonChange) =
         date == next.date &&
-            type == next.type &&
-            lessonName == next.lessonName &&
-            change == next.change &&
-            lessonTimes.last + 1 == next.lessonTimes.first &&
-            !Duration.between(endTime, next.startTime).isNegative &&
-            Duration.between(endTime, next.startTime).toMinutes() <= doubleLessonMaxBreakMinutes
+                type == next.type &&
+                lessonName == next.lessonName &&
+                change == next.change &&
+                lessonTimes.last + 1 == next.lessonTimes.first &&
+                !Duration.between(endTime, next.startTime).isNegative &&
+                Duration.between(endTime, next.startTime).toMinutes() <= doubleLessonMaxBreakMinutes
 
     fun parseChange(lesson: Lesson): List<LessonChange>? {
         logger.debug("parsing lesson ({}) at ({})", lesson.subjects[0].longName, lesson.startTime)

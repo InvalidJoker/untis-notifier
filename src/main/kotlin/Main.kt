@@ -1,12 +1,18 @@
-import config.*
+import config.DiscordNotificationConfig
+import config.NtfyNotificationConfig
+import config.PushoverNotificationConfig
+import config.loadConfig
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import notifications.MessageFormatter
+import notifications.impl.DiscordNotificationProvider
 import notifications.impl.NtfyNotificationProvider
 import notifications.impl.PushoverNotificationProvider
-import notifications.impl.DiscordNotificationProvider
 import store.LessonNotificationStore
 import untis.LessonParser
 import untis.closingUntisSession
@@ -32,10 +38,12 @@ suspend fun main() = coroutineScope {
             mainLogger.info("initializing Pushover notification provider")
             PushoverNotificationProvider(config.notifications)
         }
+
         is NtfyNotificationConfig -> {
             mainLogger.info("initializing Ntfy notification provider")
             NtfyNotificationProvider(config.notifications)
         }
+
         is DiscordNotificationConfig -> {
             mainLogger.info("initializing Discord notification provider")
             DiscordNotificationProvider(config.notifications)

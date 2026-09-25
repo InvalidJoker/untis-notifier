@@ -6,7 +6,8 @@ import io.ktor.client.statement.*
 import ktor
 import notifications.AbstractNotificationProvider
 
-class PushoverNotificationProvider(private val config: PushoverNotificationConfig) : AbstractNotificationProvider<PushoverNotificationConfig>(config) {
+class PushoverNotificationProvider(private val config: PushoverNotificationConfig) :
+    AbstractNotificationProvider<PushoverNotificationConfig>(config) {
     override suspend fun sendMessage(message: String) {
         ktor.post("https://api.pushover.net/1/messages.json") {
             parameter("token", config.apiKey)
