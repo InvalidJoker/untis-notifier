@@ -12,7 +12,8 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
     val logger = getLogger()
 
     fun parseChanges(lessons: Iterable<Lesson>): List<LessonChange> = lessons
-        .flatMap { parseChange(it).orEmpty() }
+        .groupBy { it.date to it.startTime }
+        .flatMap { (_, slot) -> parseSlot(slot) }
         .sortedWith(compareBy({ it.date }, { it.lessonTimes.first }))
         .fold(mutableListOf()) { merged, change ->
             val index = merged.indexOfLast { it.canMergeWith(change) }
@@ -44,33 +45,78 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
                 !Duration.between(endTime, next.startTime).isNegative &&
                 Duration.between(endTime, next.startTime).toMinutes() <= doubleLessonMaxBreakMinutes
 
-    fun parseChange(lesson: Lesson): List<LessonChange>? {
-        logger.debug("parsing lesson ({}) at ({})", lesson.subjects[0].longName, lesson.startTime)
-        val name = lesson.subjects[0].longName
+    private fun parseSlot(lessons: List<Lesson>): List<LessonChange> {
+        val cancelled = lessons.filter { it.code == LessonCode.CANCELLED }.toMutableList()
+        val changes = mutableListOf<LessonChange>()
+
+        for (lesson in lessons.filter { it.code != LessonCode.CANCELLED }) {
+            val replaced = cancelled.takeIf { lesson.code == LessonCode.IRREGULAR }?.firstOrNull()
+            if (replaced != null) {
+                cancelled -= replaced
+                if (replaced.subjectName != lesson.subjectName) {
+                    changes += change(replaced, LessonChangeType.SUBJECT, lesson.subjectName) ?: continue
+                    logger.debug("found replaced lesson ({}, {})", replaced.startTime, replaced.subjectName)
+                    continue
+                }
+            }
+            changes += parseChange(lesson, isReplacement = replaced != null)
+        }
+
+        cancelled.forEach { lesson ->
+            changes += change(lesson, LessonChangeType.CANCELLED, null) ?: return@forEach
+            logger.debug("found cancelled lesson ({}, {})", lesson.startTime, lesson.subjectName)
+        }
+
+        return changes
+    }
+
+    private fun parseChange(lesson: Lesson, isReplacement: Boolean): List<LessonChange> {
+        logger.debug("parsing lesson ({}) at ({})", lesson.subjectName, lesson.startTime)
+        val changes = mutableListOf<LessonChange>()
+
+        (lesson.originalSubjects.isEmpty()).ifFalse {
+            changes += change(
+                lesson,
+                LessonChangeType.SUBJECT,
+                lesson.subjectName,
+                lesson.originalSubjects.firstOrNull()?.longName ?: lesson.subjectName
+            ) ?: return changes
+            logger.debug("found changed subject ({}, {})", lesson.startTime, lesson.subjectName)
+        }
+
+        (lesson.originalTeachers.isEmpty()).ifFalse {
+            changes += change(lesson, LessonChangeType.TEACHER, lesson.teachers.firstOrNull()?.longName ?: "---")
+                ?: return changes
+            logger.debug("found changed teacher ({}, {})", lesson.startTime, lesson.subjectName)
+        }
+
+        (lesson.originalRooms.isEmpty()).ifFalse {
+            changes += change(lesson, LessonChangeType.ROOM, lesson.rooms.firstOrNull()?.name ?: "---")
+                ?: return changes
+            logger.debug("found changed room ({}, {})", lesson.startTime, lesson.subjectName)
+        }
+
+        if (lesson.code == LessonCode.IRREGULAR && changes.isEmpty() && !isReplacement) {
+            changes += change(lesson, LessonChangeType.ADDITIONAL, null) ?: return changes
+            logger.debug("found additional lesson ({}, {})", lesson.startTime, lesson.subjectName)
+        }
+
+        return changes
+    }
+
+    private fun change(
+        lesson: Lesson,
+        type: LessonChangeType,
+        change: String?,
+        name: String = lesson.subjectName
+    ): LessonChange? {
         val time = config[lesson.startTime.toKotlinLocalTime()] ?: run {
             logger.warn("invalid lesson time (${lesson.startTime})")
             return null
         }
-
-        fun change(type: LessonChangeType, change: String?) =
-            LessonChange(type, lesson.date, time..time, name, change, lesson.startTime, lesson.endTime)
-
-        if (lesson.code == LessonCode.CANCELLED) return listOf(
-            change(LessonChangeType.CANCELLED, null)
-        ).also { logger.debug("found cancelled lesson ($time, $name)") }
-
-        val changes = mutableListOf<LessonChange>()
-
-        (lesson.originalTeachers.isEmpty()).ifFalse {
-            changes += change(LessonChangeType.TEACHER, lesson.teachers.firstOrNull()?.longName ?: "---")
-            logger.debug("found changed teacher ($time, $name)")
-        }
-
-        (lesson.originalRooms.isEmpty()).ifFalse {
-            changes += change(LessonChangeType.ROOM, lesson.rooms.firstOrNull()?.name ?: "---")
-            logger.debug("found changed room ($time, $name)")
-        }
-
-        return changes.takeIf { it.isNotEmpty() }
+        return LessonChange(type, lesson.date, time..time, name, change, lesson.startTime, lesson.endTime)
     }
+
+    private val Lesson.subjectName: String
+        get() = subjects.firstOrNull()?.longName ?: "---"
 }

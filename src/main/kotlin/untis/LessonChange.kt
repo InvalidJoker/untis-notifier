@@ -6,7 +6,9 @@ import java.time.LocalTime
 enum class LessonChangeType {
     CANCELLED,
     TEACHER,
-    ROOM
+    ROOM,
+    SUBJECT,
+    ADDITIONAL
 }
 
 data class LessonChange(
