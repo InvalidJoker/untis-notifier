@@ -1,6 +1,8 @@
 package untis
 
 import config.TimeTableConfig
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.toJavaLocalTime
 import kotlinx.datetime.toKotlinLocalTime
 import org.bytedream.untis4j.UntisUtils.LessonCode
 import org.bytedream.untis4j.responseObjects.Timetable.Lesson
@@ -12,7 +14,9 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
     val logger = getLogger()
 
     fun parseChanges(lessons: Iterable<Lesson>): List<LessonChange> = lessons
-        .groupBy { it.date to it.startTime }
+        .flatMap { it.split() }
+        .groupBy { it.lesson.date to it.startTime }
+        .mapValues { (_, parts) -> parts.map { it.lesson }.toList()}
         .flatMap { (_, slot) -> parseSlot(slot) }
         .sortedWith(compareBy({ it.date }, { it.lessonTimes.first }))
         .fold(mutableListOf()) { merged, change ->
@@ -35,6 +39,21 @@ class LessonParser(val config: TimeTableConfig, val doubleLessonMaxBreakMinutes:
             }
             merged
         }
+
+    private fun Lesson.split(): List<LessonPart> {
+        var part = LessonPart(startTime, endTime, this)
+        return config.keys
+            .sorted()
+            .map(LocalTime::toJavaLocalTime)
+            .filter { part.startTime <= it && part.endTime > it }
+            .map {
+                val endTime = part.endTime
+                part.endTime = part.startTime
+                part = LessonPart(it, endTime, part.lesson)
+                part
+            }
+            .ifEmpty { listOf(part) }
+    }
 
     private fun LessonChange.canMergeWith(next: LessonChange) =
         date == next.date &&
