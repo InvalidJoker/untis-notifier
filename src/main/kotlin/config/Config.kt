@@ -41,7 +41,7 @@ data class Config(
 
 fun loadConfig(): Config? =
     Path("config.json").let {
-        if (it.exists()) {
+        if (it.exists() && it.readText().isNotBlank()) {
             try {
                 json.decodeFromString(it.readText())
             } catch (e: Exception) {
