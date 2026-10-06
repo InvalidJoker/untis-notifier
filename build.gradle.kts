@@ -1,9 +1,16 @@
+import java.util.Calendar
+
 plugins {
     kotlin("jvm") version "2.4.20"
     kotlin("plugin.serialization") version "2.4.20"
     id("dev.reformator.stacktracedecoroutinator") version "2.6.6"
     application
 }
+
+val publishVersion = System.getenv("GH_RELEASE_VERSION")
+val calendar = Calendar.getInstance()
+
+version = publishVersion ?: "${calendar[Calendar.YEAR]}.${calendar[Calendar.MONTH] + 1}-dev"
 
 repositories {
     mavenCentral()
@@ -28,6 +35,13 @@ dependencies {
 
 
 tasks {
+    processResources {
+        inputs.property("version", project.version)
+        filesMatching("version.properties") {
+            expand("version" to project.version)
+        }
+    }
+
     jar {
         manifest {
             attributes["Main-Class"] = "MainKt"

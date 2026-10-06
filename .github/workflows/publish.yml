@@ -9,6 +9,9 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: ${{ github.workflow }}
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -23,14 +26,21 @@ jobs:
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "25"
+          distribution: 'temurin'
+          cache: 'gradle'
+          java-version: '25'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v4#
+
+      - name: Configure version
+        id: calver
+        run: echo "VERSION=$(date -u +'%Y.%-m')-$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
 
       - name: Build shaded jar
         run: ./gradlew --no-daemon :build
+        env:
+          GH_RELEASE_VERSION: ${{ env.VERSION }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -63,3 +73,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Create GitHub Release
+        uses: elgohr/Github-Release-Action@v5
+        with:
+          tag: ${{ env.VERSION }}
+          title: ${{ env.VERSION }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -18,6 +18,7 @@ import untis.LessonParser
 import untis.closingUntisSession
 import untis.timetable
 import utils.getLogger
+import utils.printBanner
 import kotlin.time.Duration.Companion.seconds
 
 val ktor by lazy { HttpClient(CIO) }
@@ -31,21 +32,23 @@ val json = Json {
 val mainLogger = getLogger("Main")
 
 suspend fun main() = coroutineScope {
+    printBanner()
+
     val config = loadConfig() ?: error("cannot read config")
 
     val notificationProvider = when (config.notifications) {
         is PushoverNotificationConfig -> {
-            mainLogger.info("initializing Pushover notification provider")
+            mainLogger.info("using Pushover notification provider")
             PushoverNotificationProvider(config.notifications)
         }
 
         is NtfyNotificationConfig -> {
-            mainLogger.info("initializing Ntfy notification provider")
+            mainLogger.info("using Ntfy notification provider")
             NtfyNotificationProvider(config.notifications)
         }
 
         is DiscordNotificationConfig -> {
-            mainLogger.info("initializing Discord notification provider")
+            mainLogger.info("using Discord notification provider")
             DiscordNotificationProvider(config.notifications)
         }
     }
