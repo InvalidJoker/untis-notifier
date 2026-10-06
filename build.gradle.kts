@@ -53,5 +53,7 @@ tasks {
         from({
             configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
         })
+
+        archiveFileName.set("${project.name}.jar")
     }
 }
